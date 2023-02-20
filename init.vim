@@ -1,3 +1,9 @@
+let data_dir = has('nvim') ? stdpath('data') . '/site' : '~/.vim'
+if empty(glob(data_dir . '/autoload/plug.vim'))
+  silent execute '!curl -fLo '.data_dir.'/autoload/plug.vim --create-dirs  https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+  autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+endif
+
 call plug#begin('~/.config/nvim/plugged')
   Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
   Plug 'junegunn/fzf.vim'
@@ -16,8 +22,8 @@ call plug#begin('~/.config/nvim/plugged')
   Plug 'purescript-contrib/purescript-vim'
   Plug 'kevinhwang91/nvim-bqf'
   Plug 'nvim-treesitter/nvim-treesitter', { 'do':':TSUpdate' }
-
-  Plug 'shortcuts/no-neck-pain.nvim', { 'tag': '*' }
+  Plug 'nvim-lua/plenary.nvim'
+  Plug 'MrcJkb/haskell-tools.nvim'
 
 	Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
   " post istall (yarn install | npm install)
@@ -139,10 +145,10 @@ if (has("termguicolors"))
 endif
 
 syntax enable
-let ayucolor="mirage"
-colorscheme ayu
-" set background=dark " or light if you want light mode
-" colorscheme gruvbox
+" let ayucolor="mirage"
+" colorscheme ayu
+set background=dark " or light if you want light mode
+colorscheme gruvbox
 
 
 "set leader to space
@@ -200,6 +206,7 @@ nnoremap gh <cmd>lua vim.lsp.buf.hover()<CR>
 nnoremap gt <cmd>lua vim.lsp.buf.type_definition()<CR>
 nnoremap <leader>e :lua vim.diagnostic.open_float()<CR>
 nnoremap <leader>d :lua vim.diagnostic.goto_next()<CR>
+nnoremap <leader>pp :lua vim.lsp.buf.format{asyc=true}<CR>
 
 "for terminal-normal mode. Run the the previous command again
 " nnoremap <C-k> i<Up><CR>
@@ -246,7 +253,7 @@ EOF
 "set statusline+=\ %3p%%\                " percentage
 
 
-"" air-line
+"air-line
 let g:airline_powerline_fonts = 1
 
 if !exists('g:airline_symbols')
@@ -268,6 +275,8 @@ let g:airline_symbols.paste = '∥'
 let g:airline_symbols.whitespace = 'Ξ'
 
 "airline symbols
+"
+
 let g:airline_left_sep = ''
 let g:airline_left_alt_sep = ''
 let g:airline_right_sep = ''
@@ -283,4 +292,33 @@ let g:vim_parinfer_filetypes = ['scheme']
 let g:scheme_executable = "racket"
 
 
-source ~/.config/nvim/dbx.vim
+"source ~/.config/nvim/dbx.vim
+
+
+
+"haskell config
+
+lua << EOF
+local ht = require('haskell-tools')
+local def_opts = { noremap = true, silent = true, }
+ht.setup {
+  hls = {
+    on_attach = function(client, bufnr)
+      local opts = vim.tbl_extend('keep', def_opts, { buffer = bufnr, })
+      -- haskell-language-server relies heavily on codeLenses,
+      -- so auto-refresh (see advanced configuration) is enabled by default
+      vim.keymap.set('n', '<space>r', vim.lsp.codelens.run, opts)
+      vim.keymap.set('n', '<space>hs', ht.hoogle.hoogle_signature, opts)
+      -- default_on_attach(client, bufnr)  -- if defined, see nvim-lspconfig
+    end,
+  },
+}
+-- Suggested keymaps that do not depend on haskell-language-server
+-- Toggle a GHCi repl for the current package
+vim.keymap.set('n', '<leader>rr', ht.repl.toggle, def_opts)
+-- Toggle a GHCi repl for the current buffer
+vim.keymap.set('n', '<leader>rf', function()
+  ht.repl.toggle(vim.api.nvim_buf_get_name(0))
+end, def_opts)
+vim.keymap.set('n', '<leader>rq', ht.repl.quit, def_opts)
+EOF
